@@ -19,9 +19,14 @@ public class TribulationManager {
 
     public TribulationManager(TuTienPlugin plugin) { this.plugin = plugin; }
     public boolean isInTribulation(Player player) { return playersInTribulation.containsKey(player.getUniqueId()); }
-    public void addTamMa(Player player, double damage) { /* ... */ }
 
-    // HÀM QUAN TRỌNG CẦN SỬA
+    public void addTamMa(Player player, double damage) {
+        if (!isInTribulation(player)) return;
+        double currentTamMa = playersInTribulation.getOrDefault(player.getUniqueId(), 0.0);
+        playersInTribulation.put(player.getUniqueId(), currentTamMa + damage);
+        player.sendMessage("§4[Cảnh Báo] §cTâm ma đang trỗi dậy do ngoại giới can thiệp!");
+    }
+
     public void startTribulation(Player player) {
         if (isInTribulation(player)) {
             player.sendMessage("§cBạn đang trong quá trình độ kiếp!");
@@ -33,15 +38,11 @@ public class TribulationManager {
             return;
         }
 
-        // --- (THAY ĐỔI TẠI ĐÂY) KIỂM TRA CẢNH GIỚI PHÀM NHÂN ---
         if (data.getTuLuyenInfo().getCanhGioi() == CanhGioi.PHAM_NHAN) {
-            // Nếu là Phàm Nhân, đột phá ngay lập tức không cần lôi kiếp
             succeedTribulation(player);
-            return; // Kết thúc hàm tại đây
+            return;
         }
-        // --- KẾT THÚC THAY ĐỔI ---
 
-        // Logic Lôi Kiếp chỉ chạy cho các cảnh giới từ Luyện Khí trở lên
         Location skyLocation = player.getLocation().add(0, 20, 0);
         player.setAllowFlight(true);
         player.setFlying(true);
@@ -59,14 +60,92 @@ public class TribulationManager {
         totalLightningStrikes = Math.max(5, Math.min(totalLightningStrikes, 40));
 
         new BukkitRunnable() {
-            // ... logic task giữ nguyên ...
+            int ticksLeft = durationInSeconds * 20;
+            int strikesLeft = totalLightningStrikes;
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || !playersInTribulation.containsKey(player.getUniqueId())) {
+                    failTribulation(player, "§cĐộ kiếp bị gián đoạn!");
+                    this.cancel();
+                    return;
+                }
+                if (player.isFlying() == false) player.setFlying(true);
+                if (ticksLeft <= 0 || player.isDead()) {
+                    handleTribulationResult(player);
+                    this.cancel();
+                    return;
+                }
+                if (strikesLeft > 0 && ticksLeft > 0 && (ticksLeft % (durationInSeconds * 20 / totalLightningStrikes) == 0)) {
+                    player.getWorld().strikeLightning(player.getLocation());
+                    strikesLeft--;
+                }
+                ticksLeft--;
+            }
         }.runTaskTimer(plugin, 40L, 1L);
     }
     
-    // ... các hàm còn lại giữ nguyên ...
-    private void handleTribulationResult(Player player) { /*...*/ }
-    private void succeedTribulation(Player player) { /*...*/ }
-    private void tauHoaNhapMa(Player player) { /*...*/ }
-    private void kinhMachRoiLoan(Player player) { /*...*/ }
-    public void failTribulation(Player player, String message) { /*...*/ }
+    private void handleTribulationResult(Player player) {
+        double tamMaValue = playersInTribulation.getOrDefault(player.getUniqueId(), 0.0);
+        
+        if (player.isFlying()) player.setFlying(false);
+        plugin.getFlightManager().updatePlayerFlight(player);
+
+        if (player.isDead()) {
+            failTribulation(player, "§cBạn đã thất bại dưới lôi kiếp!");
+            return;
+        }
+        
+        if (tamMaValue >= plugin.getConfigManager().LOI_KIEP_NGUONG_NANG) tauHoaNhapMa(player);
+        else if (tamMaValue >= plugin.getConfigManager().LOI_KIEP_NGUONG_NHE) kinhMachRoiLoan(player);
+        else succeedTribulation(player);
+    }
+
+    private void succeedTribulation(Player player) {
+        playersInTribulation.remove(player.getUniqueId());
+        plugin.getBossBarManager().updateBossBar(player);
+        
+        PlayerData data = plugin.getPlayerDataManager().getPlayerData(player);
+        if (data != null) {
+            String canhGioiCu = data.getTuLuyenInfo().getTenHienThiDayDu();
+            data.performGrandBreakthrough();
+            String canhGioiMoi = data.getTuLuyenInfo().getTenHienThiDayDu();
+            player.sendTitle("§a§lTHÀNH CÔNG", "§fChúc mừng đột phá lên §e" + canhGioiMoi, 10, 80, 20);
+            Bukkit.broadcastMessage(String.format("§e[Chúc Mừng] §fĐạo hữu §b%s§f đã vượt qua thiên kiếp, từ %s đột phá lên %s!", player.getName(), canhGioiCu, canhGioiMoi));
+            plugin.getAttributeManager().updatePlayerAttributes(player);
+            plugin.getFlightManager().updatePlayerFlight(player);
+        }
+    }
+    
+    private void tauHoaNhapMa(Player player) {
+        playersInTribulation.remove(player.getUniqueId());
+        plugin.getBossBarManager().updateBossBar(player);
+        plugin.getPlayerDataManager().resetPlayerData(player);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, Integer.MAX_VALUE, 1));
+        Bukkit.broadcastMessage("§4§l[BI KỊCH] §cDo bị ngoại giới can nhiễu, đạo hữu §b" + player.getName() + " §cđã tẩu hỏa nhập ma, tu vi tiêu tán, trở thành phế nhân!");
+    }
+    
+    private void kinhMachRoiLoan(Player player) {
+        playersInTribulation.remove(player.getUniqueId());
+        plugin.getBossBarManager().updateBossBar(player);
+        player.sendMessage("§cDo bị can thiệp, kinh mạch của bạn bị rối loạn, đột phá thất bại!");
+        PlayerData data = plugin.getPlayerDataManager().getPlayerData(player);
+        if (data != null) {
+            long penalty = (long) (data.getLinhKhi() * plugin.getConfigManager().LOI_KIEP_PHAT_NHE);
+            data.setLinhKhi(data.getLinhKhi() - penalty);
+            player.sendMessage(String.format("§cBạn đã mất §e%,d§c linh khí!", penalty));
+        }
+    }
+
+    public void failTribulation(Player player, String message) {
+        playersInTribulation.remove(player.getUniqueId());
+        plugin.getBossBarManager().updateBossBar(player);
+        player.sendMessage(message);
+        PlayerData data = plugin.getPlayerDataManager().getPlayerData(player);
+        if (data != null) {
+            long penalty = (long) (data.getLinhKhi() * 0.3);
+            data.setLinhKhi(data.getLinhKhi() - penalty);
+            player.sendMessage(String.format("§cBạn đã mất §e%,d§c linh khí!", penalty));
+        }
+    }
 }
