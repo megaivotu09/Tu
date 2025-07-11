@@ -7,8 +7,8 @@ public enum LinhCan {
     PHE_PHAM("§7Phế Phẩm Linh Căn", 0.0),
     HA_PHAM("§fHạ Phẩm Linh Căn", 1.0),
     TRUNG_PHAM("§aTrung Phẩm Linh Căn", 3.0),
-    THUONG_PHAM("§bThượng Phẩm Linh Căn", 12.0),
-    THANH_PHAM("§6§lThánh Phẩm Linh Căn", 72.0);
+    THUONG_PHAM("§bThượng Phẩm Linh Căn", 9.0),
+    THANH_PHAM("§6§lThánh Phẩm Linh Căn", 24.0);
 
     private final String tenHienThi;
     private final double heSoLinhKhi;
