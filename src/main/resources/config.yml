@@ -1,8 +1,14 @@
 # Cấu hình Plugin Tu Tiên
 # Sau khi chỉnh sửa, hãy lưu file và gõ lệnh /reload trên server hoặc khởi động lại.
 
+# ... các mục khác giữ nguyên ...
 thien-dinh:
+  # Người chơi sẽ nhận được gấp bao nhiêu lần linh khí khi thiền?
   he-so-bonus: 3.0
+  # Lượng linh khí CỐ ĐỊNH được cộng thêm mỗi giây khi thiền.
+  # Con số này sẽ được cộng vào trước khi nhân với hệ số bonus.
+  linh-khi-cong-them-moi-giay: 3 # <-- THÊM DÒNG NÀY
+# ...
 
 kha-nang-bay:
   ngu-kiem-yeu-cau-tang: 5
