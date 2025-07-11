@@ -6,6 +6,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
+
 import java.util.UUID;
 
 public class AttributeManager {
@@ -27,46 +28,46 @@ public class AttributeManager {
         double defense = statManager.getDefense();
         double attackDamage = statManager.getAttackDamage();
 
-        // --- Cập nhật Máu ---
-        // Sử dụng trực tiếp hằng số từ enum Attribute, đây là cách làm đúng và an toàn nhất.
-        AttributeInstance healthAttribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        AttributeInstance healthAttribute = player.getAttribute(getAttributeSafely("GENERIC_MAX_HEALTH"));
         if (healthAttribute != null) {
-            // Xóa modifier cũ của plugin (nếu có) để tránh cộng dồn
             healthAttribute.getModifiers().stream()
                     .filter(m -> m.getUniqueId().equals(HEALTH_MODIFIER_UUID))
                     .forEach(healthAttribute::removeModifier);
-
-            // Thêm modifier mới (cộng thêm phần chênh lệch so với máu gốc là 20)
             AttributeModifier healthModifier = new AttributeModifier(
-                    HEALTH_MODIFIER_UUID, "tutien_health", maxHealth - 20.0,
-                    AttributeModifier.Operation.ADD_NUMBER);
+                    HEALTH_MODIFIER_UUID, "tutien_health",
+                    maxHealth - 20, AttributeModifier.Operation.ADD_NUMBER);
             healthAttribute.addModifier(healthModifier);
         }
 
-        // --- Cập nhật Giáp ---
-        AttributeInstance defenseAttribute = player.getAttribute(Attribute.GENERIC_ARMOR);
+        AttributeInstance defenseAttribute = player.getAttribute(getAttributeSafely("GENERIC_ARMOR"));
         if (defenseAttribute != null) {
-            healthAttribute.getModifiers().stream()
+            defenseAttribute.getModifiers().stream()
                     .filter(m -> m.getUniqueId().equals(DEFENSE_MODIFIER_UUID))
                     .forEach(defenseAttribute::removeModifier);
-
             AttributeModifier defenseModifier = new AttributeModifier(
-                    DEFENSE_MODIFIER_UUID, "tutien_defense", defense,
-                    AttributeModifier.Operation.ADD_NUMBER);
+                    DEFENSE_MODIFIER_UUID, "tutien_defense",
+                    defense, AttributeModifier.Operation.ADD_NUMBER);
             defenseAttribute.addModifier(defenseModifier);
         }
 
-        // --- Cập nhật Sát thương ---
-        AttributeInstance damageAttribute = player.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+        AttributeInstance damageAttribute = player.getAttribute(getAttributeSafely("GENERIC_ATTACK_DAMAGE"));
         if (damageAttribute != null) {
             damageAttribute.getModifiers().stream()
                     .filter(m -> m.getUniqueId().equals(DAMAGE_MODIFIER_UUID))
                     .forEach(damageAttribute::removeModifier);
-            
             AttributeModifier damageModifier = new AttributeModifier(
-                    DAMAGE_MODIFIER_UUID, "tutien_damage", attackDamage,
-                    AttributeModifier.Operation.ADD_NUMBER);
+                    DAMAGE_MODIFIER_UUID, "tutien_damage",
+                    attackDamage, AttributeModifier.Operation.ADD_NUMBER);
             damageAttribute.addModifier(damageModifier);
+        }
+    }
+
+    private Attribute getAttributeSafely(String name) {
+        try {
+            return Attribute.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Không tìm thấy attribute: " + name);
+            return null;
         }
     }
 }
