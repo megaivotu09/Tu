@@ -1,0 +1,27 @@
+name: TuTienPlugin
+version: '1.1.0'
+main: com.yourname.tutien.TuTienPlugin
+api-version: '1.21'
+author: YourName
+description: Plugin Tu Tiên với hệ thống tu luyện toàn diện.
+
+commands:
+  tutien:
+    description: Các lệnh liên quan đến tu tiên.
+    usage: /<command> [info|truyenlinhkhi]
+    aliases: [tt, tuchan]
+  tuluyen:
+    description: Bắt đầu hoặc kết thúc thiền định.
+    usage: /<command>
+    aliases: [tl, thien]
+  dotpha:
+    description: Bắt đầu độ kiếp để đột phá đại cảnh giới.
+    usage: /<command>
+  setlinhkhi:
+    description: (Admin) Đặt linh khí cho bản thân.
+    usage: /<command> <số lượng>
+    permission: tutien.admin
+  setlinhcan:
+    description: (Admin) Đặt linh căn cho một người chơi.
+    usage: /<command> <tên_người_chơi> <tên_linh_căn>
+    permission: tutien.admin
