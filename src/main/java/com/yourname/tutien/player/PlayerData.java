@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 import java.util.UUID;
 
 public class PlayerData {
-    // ... các biến và constructor giữ nguyên ...
     private final UUID uuid;
     private TuLuyenInfo tuLuyenInfo;
     private long linhKhi;
@@ -28,11 +27,72 @@ public class PlayerData {
         this.linhCan = linhCan;
     }
     
-    // ... các hàm khác giữ nguyên ...
-    public void addLinhKhi(long amount) { /*...*/ }
-    public void handleTierBreakthrough() { /*...*/ }
-    public void performGrandBreakthrough() { /*...*/ }
-    public long getExcessLinhKhi() { /*...*/ }
+    public void addLinhKhi(long amount) {
+        if (amount > 0) this.linhKhi += amount;
+        handleTierBreakthrough();
+    }
+
+    public void handleTierBreakthrough() {
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null || tuLuyenInfo.getCanhGioi() == CanhGioi.PHAM_NHAN) {
+            return;
+        }
+
+        while (tuLuyenInfo.getTang() < 9 && this.linhKhi >= tuLuyenInfo.getLinhKhiCanThiet()) {
+            long linhKhiCanThiet = tuLuyenInfo.getLinhKhiCanThiet();
+            this.linhKhi -= linhKhiCanThiet;
+            tuLuyenInfo.dotPha();
+            
+            player.sendMessage("§b[Tiểu Đột Phá] §fLinh khí ngưng tụ, đạo hữu đã đột phá lên §e" + tuLuyenInfo.getTenHienThiDayDu());
+            
+            TuTienPlugin.getInstance().getAttributeManager().updatePlayerAttributes(player);
+            TuTienPlugin.getInstance().getFlightManager().updatePlayerFlight(player);
+        }
+    }
+    
+    // HÀM ĐÃ ĐƯỢC SỬA LỖI
+    public boolean canGrandBreakthrough() {
+        // Lấy thông tin cần thiết
+        CanhGioi canhGioiHienTai = tuLuyenInfo.getCanhGioi();
+        int tangHienTai = tuLuyenInfo.getTang();
+        
+        boolean isAtBreakthroughPoint = (canhGioiHienTai == CanhGioi.PHAM_NHAN || tangHienTai == 9);
+        
+        if (!isAtBreakthroughPoint) {
+            return false;
+        }
+
+        long linhKhiCanThietGoc = tuLuyenInfo.getLinhKhiCanThiet();
+        if (linhKhiCanThietGoc == Long.MAX_VALUE) {
+            return false;
+        }
+
+        double multiplier = TuTienPlugin.getInstance().getConfigManager().DOT_PHA_VUOT_MOC;
+        long nguongYeuCau = (long) (linhKhiCanThietGoc * multiplier);
+
+        return this.linhKhi >= nguongYeuCau;
+    }
+    
+    public void performGrandBreakthrough() {
+        if (!canGrandBreakthrough()) return;
+        
+        long linhKhiCanThiet = tuLuyenInfo.getLinhKhiCanThiet();
+        this.linhKhi -= linhKhiCanThiet;
+        tuLuyenInfo.dotPha();
+
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null) {
+            TuTienPlugin.getInstance().getAttributeManager().updatePlayerAttributes(player);
+            TuTienPlugin.getInstance().getFlightManager().updatePlayerFlight(player);
+        }
+    }
+    
+    public long getExcessLinhKhi() {
+        if (!canGrandBreakthrough()) return 0;
+        return this.linhKhi - tuLuyenInfo.getLinhKhiCanThiet();
+    }
+
+    // Getters and Setters
     public UUID getUuid() { return uuid; }
     public TuLuyenInfo getTuLuyenInfo() { return tuLuyenInfo; }
     public void setTuLuyenInfo(TuLuyenInfo tuLuyenInfo) { this.tuLuyenInfo = tuLuyenInfo; }
@@ -40,45 +100,4 @@ public class PlayerData {
     public void setLinhKhi(long linhKhi) { this.linhKhi = linhKhi; }
     public LinhCan getLinhCan() { return linhCan; }
     public void setLinhCan(LinhCan linhCan) { this.linhCan = linhCan; }
-
-
-    // HÀM QUAN TRỌNG CẦN SỬA
-    public boolean canGrandBreakthrough() {
-        // Lấy thông tin cần thiết
-        CanhGioi canhGioiHienTai = tuLuyenInfo.getCanhGioi();
-        int tangHienTai = tuLuyenInfo.getTang();
-        
-        // Điều kiện 1: Người chơi có phải đang ở mốc cần đột phá lớn không?
-        // Chỉ có Phàm Nhân (luôn là tầng 1) hoặc các cảnh giới khác ở Tầng 9 mới được đột phá lớn.
-        boolean isAtBreakthroughPoint = (canhGioiHienTai == CanhGioi.PHAM_NHAN || tangHienTai == 9);
-        
-        if (!isAtBreakthroughPoint) {
-            return false; // Nếu không ở Tầng 9 (và không phải Phàm Nhân), chắc chắn không thể đột phá lớn.
-        }
-
-        // Điều kiện 2: Kiểm tra linh khí
-        long linhKhiCanThietGoc = tuLuyenInfo.getLinhKhiCanThiet();
-        
-        // Nếu đã max cảnh giới, không thể đột phá
-        if (linhKhiCanThietGoc == Long.MAX_VALUE) {
-            return false;
-        }
-
-        // Lấy hệ số vượt mốc từ config
-        double multiplier = TuTienPlugin.getInstance().getConfigManager().DOT_PHA_VUOT_MOC;
-        
-        // Tính ngưỡng linh khí yêu cầu (mốc gốc * hệ số)
-        long nguongYeuCau = (long) (linhKhiCanThietGoc * multiplier);
-
-        // Điều kiện cuối: Linh khí hiện tại có đủ so với ngưỡng yêu cầu không?
-        boolean hasEnoughLinhKhi = (this.linhKhi >= nguongYeuCau);
-        
-        // (Dành cho kiểm tra lỗi) Gửi log ra console
-        // TuTienPlugin.getInstance().getLogger().info(String.format(
-        //     "[Check /dotpha] Player: %s | Can: %b | CurrentLK: %d | RequiredLK: %d",
-        //     Bukkit.getOfflinePlayer(uuid).getName(), hasEnoughLinhKhi, this.linhKhi, nguongYeuCau
-        // ));
-
-        return hasEnoughLinhKhi;
-    }
 }
