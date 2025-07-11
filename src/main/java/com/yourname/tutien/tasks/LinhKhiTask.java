@@ -15,31 +15,33 @@ public class LinhKhiTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        // Task này chạy mỗi 5 giây (100 ticks), không phải 1 giây.
-        // Để cộng 3 linh khí mỗi giây, chúng ta cần cộng 3 * 5 = 15 linh khí mỗi lần task chạy.
-        int linhKhiCongThemKhiThien = plugin.getConfigManager().THIEN_DINH_LINH_KHI_CONG_THEM * 5;
-
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (plugin.getRemnantSoulManager().isSoul(player.getUniqueId())) continue;
+            // --- THAY ĐỔI QUAN TRỌNG TẠI ĐÂY ---
+            // 1. Bỏ qua nếu là Tàn hồn
+            if (plugin.getRemnantSoulManager().isSoul(player.getUniqueId())) {
+                continue;
+            }
 
+            // 2. Chỉ xử lý nếu người chơi đang thiền định (dùng /tuluyen)
+            if (!plugin.getMeditationManager().isMeditating(player)) {
+                continue; // Bỏ qua người chơi này nếu họ không thiền
+            }
+            
+            // --- Logic cũ chỉ chạy khi các điều kiện trên được thỏa mãn ---
             PlayerData data = plugin.getPlayerDataManager().getPlayerData(player);
             if (data != null) {
-                // Lượng linh khí gốc nhận được khi AFK
+                // Task chạy mỗi 5 giây (100 ticks)
+                int linhKhiCongThemKhiThien = plugin.getConfigManager().THIEN_DINH_LINH_KHI_CONG_THEM * 5;
+
+                // Lượng linh khí gốc khi thiền
                 double baseAmount = 1 + data.getTuLuyenInfo().getCanhGioi().getId();
-                
-                // (THAY ĐỔI TẠI ĐÂY)
-                // Nếu đang thiền, cộng thêm lượng linh khí cố định vào lượng gốc
-                if (plugin.getMeditationManager().isMeditating(player)) {
-                    baseAmount += linhKhiCongThemKhiThien;
-                }
+                baseAmount += linhKhiCongThemKhiThien;
 
                 // Nhân với hệ số của linh căn
                 double finalAmount = baseAmount * data.getLinhCan().getHeSoLinhKhi();
 
-                // Nếu đang thiền, nhân tiếp với hệ số bonus
-                if (plugin.getMeditationManager().isMeditating(player)) {
-                    finalAmount *= plugin.getConfigManager().THIEN_DINH_BONUS;
-                }
+                // Nhân tiếp với hệ số bonus thiền
+                finalAmount *= plugin.getConfigManager().THIEN_DINH_BONUS;
 
                 if (finalAmount > 0) {
                     data.addLinhKhi((long) finalAmount);
