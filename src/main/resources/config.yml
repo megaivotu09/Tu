@@ -1,0 +1,30 @@
+# Cấu hình Plugin Tu Tiên
+# Sau khi chỉnh sửa, hãy lưu file và gõ lệnh /reload trên server hoặc khởi động lại.
+
+thien-dinh:
+  he-so-bonus: 3.0
+
+kha-nang-bay:
+  ngu-kiem-yeu-cau-tang: 5
+
+loi-kiep:
+  nguong-tau-hoa-nhap-ma: 30.0
+  nguong-kinh-mach-roi-loan: 10.0
+  phan-tram-phat-nhe: 0.5
+
+hinh-phat-tu-vong:
+  canh-gioi-bat-dau-phat: 3
+  canh-gioi-bat-dau-tan-hon: 4
+
+dot-pha:
+  # Linh khí phải vượt bao nhiêu % so với mốc cần thiết để có thể độ kiếp?
+  # 1.05 = 5%, 1.1 = 10%
+  linh-khi-vuot-moc-yeu-cau: 1.05
+
+tin-nhan:
+  khong-the-thien: "&cBạn phải đứng trên mặt đất để thiền định."
+  thien-bat-dau: "&aBạn đã tiến vào trạng thái Thiền Định. Tốc độ hấp thụ linh khí tăng lên."
+  thien-ket-thuc: "&eBạn đã kết thúc trạng thái Thiền Định."
+  can-kiem-de-bay: "&cBạn phải cầm kiếm để Ngự Kiếm Phi Hành!"
+  bat-dau-ngu-kiem: "&aBạn đã có thể Ngự Kiếm Phi Hành! (Nhấn đúp phím cách)"
+  bat-dau-lang-khong: "&bBạn đã có thể Lăng Không Phi Hành! (Nhấn đúp phím cách)"
