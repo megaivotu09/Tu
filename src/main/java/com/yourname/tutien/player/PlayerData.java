@@ -5,6 +5,7 @@ import com.yourname.tutien.enums.CanhGioi;
 import com.yourname.tutien.enums.LinhCan;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public class PlayerData {
@@ -26,7 +27,7 @@ public class PlayerData {
         this.linhKhi = linhKhi;
         this.linhCan = linhCan;
     }
-
+    
     public void addLinhKhi(long amount) {
         if (amount > 0) this.linhKhi += amount;
         handleTierBreakthrough();
@@ -34,9 +35,7 @@ public class PlayerData {
 
     private void handleTierBreakthrough() {
         Player player = Bukkit.getPlayer(uuid);
-        if (player == null || tuLuyenInfo.getCanhGioi() == CanhGioi.PHAM_NHAN) {
-            return;
-        }
+        if (player == null || tuLuyenInfo.getCanhGioi() == CanhGioi.PHAM_NHAN) return;
 
         while (tuLuyenInfo.getTang() < 9 && this.linhKhi >= tuLuyenInfo.getLinhKhiCanThiet()) {
             long linhKhiCanThiet = tuLuyenInfo.getLinhKhiCanThiet();
@@ -46,45 +45,41 @@ public class PlayerData {
             updateAllAttributes(player);
         }
     }
-
+    
     public boolean canGrandBreakthrough() {
         boolean isAtBreakthroughPoint = (tuLuyenInfo.getCanhGioi() == CanhGioi.PHAM_NHAN || tuLuyenInfo.getTang() == 9);
-        if (!isAtBreakthroughPoint) {
-            return false;
-        }
+        if (!isAtBreakthroughPoint) return false;
 
         long linhKhiCanThietGoc = tuLuyenInfo.getLinhKhiCanThiet();
-        if (linhKhiCanThietGoc == Long.MAX_VALUE) {
-            return false;
-        }
+        if (linhKhiCanThietGoc == Long.MAX_VALUE) return false;
 
-        double multiplier = TuTienPlugin.getInstance().getConfigManager().DOT_PHA_VUOT_MOC;
-        long nguongYeuCau = (long) (linhKhiCanThietGoc * multiplier);
+        BigDecimal requiredBD = new BigDecimal(linhKhiCanThietGoc);
+        BigDecimal multiplierBD = new BigDecimal(TuTienPlugin.getInstance().getConfigManager().DOT_PHA_VUOT_MOC);
+        BigDecimal thresholdBD = requiredBD.multiply(multiplierBD);
+
+        long nguongYeuCau = thresholdBD.longValue();
         return this.linhKhi >= nguongYeuCau;
     }
-
+    
     public void performGrandBreakthrough() {
-        long linhKhiDaDung = this.tuLuyenInfo.getLinhKhiCanThiet();
         this.tuLuyenInfo.dotPha();
-        this.setLinhKhi(this.getLinhKhi() - linhKhiDaDung); // Sửa lại logic trừ linh khí
-
+        // Không trừ linh khí theo yêu cầu
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
             updateAllAttributes(player);
         }
     }
-
+    
     private void updateAllAttributes(Player player) {
         TuTienPlugin.getInstance().getAttributeManager().updatePlayerAttributes(player);
         TuTienPlugin.getInstance().getFlightManager().updatePlayerFlight(player);
     }
-
+    
     public long getExcessLinhKhi() {
         if (!canGrandBreakthrough()) return 0;
         return this.linhKhi - tuLuyenInfo.getLinhKhiCanThiet();
     }
 
-    // Getters and Setters
     public UUID getUuid() { return uuid; }
     public TuLuyenInfo getTuLuyenInfo() { return tuLuyenInfo; }
     public void setTuLuyenInfo(TuLuyenInfo tuLuyenInfo) { this.tuLuyenInfo = tuLuyenInfo; }
